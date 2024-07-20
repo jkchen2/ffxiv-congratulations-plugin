@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Dalamud.Game.Command;
 using Dalamud.Plugin;
 using Congratulations.Windows;
@@ -25,7 +25,7 @@ namespace Congratulations
         private int lastAreaPartySize;
         private ConfigWindow configWindow;
 
-        public CongratulationsPlugin(DalamudPluginInterface pluginInterface)
+        public CongratulationsPlugin(IDalamudPluginInterface pluginInterface)
         {
             pluginInterface.Create<Service>();
 
