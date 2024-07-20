@@ -1,5 +1,7 @@
 # Congratulations Plugin
 
+(This plugin was originally created by [Berna](https://github.com/Berna-L), but is now maintained by others.)
+
 Get aurally rewarded when you get commended on duties.
 
 ## Attribution
