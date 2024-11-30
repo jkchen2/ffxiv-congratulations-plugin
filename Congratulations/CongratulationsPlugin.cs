@@ -22,7 +22,7 @@ namespace Congratulations
         private short lastCommendationCount;
         private int largestPartySize;
         private int currentPartySize;
-        private int lastAreaPartySize;
+        private int lastAreaPartySize = -1;
         private ConfigWindow configWindow;
 
         public CongratulationsPlugin(IDalamudPluginInterface pluginInterface)
@@ -82,7 +82,7 @@ namespace Congratulations
         // weird logic that happens here.
         private void OnTerritoryChange(ushort @ushort)
         {
-            if (!Service.ClientState.IsLoggedIn) return;
+            if (!Service.ClientState.IsLoggedIn || lastAreaPartySize == -1) return;
             Service.PluginLog.Debug("territory changed");
             var currentCommendationCount = GetCurrentCommendationCount();
 
