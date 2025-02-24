@@ -1,7 +1,3 @@
-using Dalamud.Game;
-using Dalamud.Game.ClientState;
-using Dalamud.Game.ClientState.Party;
-using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -23,11 +19,11 @@ public class Service
     public static IPartyList PartyList { get; private set; } = null!;
 
     [PluginService]
-    public static IFramework Framework { get; private set; } = null!;
-
-    [PluginService]
     public static IPluginLog PluginLog { get; private set; } = null!;
 
     [PluginService]
     public static IGameConfig GameConfig { get; private set; } = null!;
+
+    [PluginService]
+    public static IDutyState DutyState { get; private set; } = null!;
 }
