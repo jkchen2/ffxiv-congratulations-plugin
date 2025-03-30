@@ -1,4 +1,4 @@
-﻿using Congratulations.Game;
+﻿using Dalamud.Game.Config;
 
 namespace Congratulations.Common;
 
@@ -6,11 +6,22 @@ public static class GameSettings
 {
     public static float GetEffectiveSfxVolume()
     {
-        if (GameConfig.System.GetBool("IsSndSe") ||
-            GameConfig.System.GetBool("IsSndMaster"))
+        if (IsChannelMuted(SystemConfigOption.IsSndSe) || IsChannelMuted(SystemConfigOption.IsSndMaster))
         {
             return 0;
         }
-        return GameConfig.System.GetUInt("SoundSe")/100f * (GameConfig.System.GetUInt("SoundMaster")/100f);
+
+        if (Service.GameConfig.TryGet(SystemConfigOption.SoundSe, out uint seVolume) &&
+            Service.GameConfig.TryGet(SystemConfigOption.SoundMaster, out uint masterVolume))
+        {
+            return seVolume / 100f * (masterVolume / 100f);
+        }
+
+        return 0;
+    }
+
+    private static bool IsChannelMuted(SystemConfigOption option)
+    {
+        return Service.GameConfig.TryGet(option, out bool value) && value;
     }
 }
