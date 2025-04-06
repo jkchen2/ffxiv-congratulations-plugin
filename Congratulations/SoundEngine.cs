@@ -19,6 +19,7 @@ public static class SoundEngine
         if (path.IsNullOrEmpty() || !File.Exists(path))
         {
             Service.PluginLog.Error($"Could not find file: {path}");
+            return;
         }
 
         var effectiveVolume = applySfxVolume ? volume * GetEffectiveSfxVolume() : volume;
@@ -27,7 +28,14 @@ public static class SoundEngine
         new Thread(() => {
             WaveStream reader;
             try {
-                reader = new MediaFoundationReader(path);
+                if (path.EndsWith(".wav"))
+                {
+                    reader = new WaveFileReader(path);
+                }
+                else
+                {
+                    reader = new MediaFoundationReader(path);
+                }
             } catch (Exception e) {
                 Service.PluginLog.Error(e.Message);
                 return;

@@ -46,6 +46,7 @@ namespace Congratulations
             Service.ClientState.TerritoryChanged += OnTerritoryChange;
             Service.Framework.Update += OnUpdate;
             Service.ClientState.Login += OnLogin;
+            Service.ClientState.Logout += OnLogout;
 
             if (Service.ClientState.IsLoggedIn)
             {
@@ -62,6 +63,12 @@ namespace Congratulations
             lastAreaPartySize = currentPartySize;
             largestPartySize = currentPartySize;
             Service.PluginLog.Debug("Starting party size: {0}", largestPartySize);
+        }
+
+        private void OnLogout(int type, int code)
+        {
+            Service.PluginLog.Debug("Clearing commendations count (logging out)");
+            this.lastCommendationCount = 0;
         }
 
         //Called each frame or something?
@@ -88,7 +95,7 @@ namespace Congratulations
 
             // If the WoL commendations went up when changing location
             // (i.e. a duty has finished and the WoL left the instance)
-            if (currentCommendationCount > lastCommendationCount)
+            if (lastCommendationCount > 0 && currentCommendationCount > lastCommendationCount)
             {
                 Service.PluginLog.Debug("Commends changed from {0} to {1}", lastCommendationCount, currentCommendationCount);
                 // lastAreaPartySize = party size BEFORE joining the duty (that can't commend you).
