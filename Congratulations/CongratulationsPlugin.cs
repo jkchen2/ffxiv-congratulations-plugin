@@ -168,6 +168,7 @@ namespace Congratulations
             Service.ClientState.TerritoryChanged -= OnTerritoryChange;
             Service.Framework.Update -= OnUpdate;
             Service.ClientState.Login -= OnLogin;
+            Service.ClientState.Logout -= OnLogout;
         }
 
         private void OnConfigCommand(string command, string args)
