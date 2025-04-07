@@ -28,29 +28,30 @@ public static class SoundEngine
         new Thread(() => {
             WaveStream reader;
             try {
-                if (path.EndsWith(".wav"))
+                if (Util.IsWine() && path.EndsWith(".wav"))
                 {
+                    Service.PluginLog.Debug($"On Linux, reading .wav: {path}");
                     reader = new WaveFileReader(path);
                 }
                 else
                 {
+                    Service.PluginLog.Debug($"Reading file regularly: {path}");
                     reader = new MediaFoundationReader(path);
                 }
             } catch (Exception e) {
                 Service.PluginLog.Error(e.Message);
                 return;
             }
-            
-            using var channel = new WaveChannel32(reader) {
-                // prevent the user from bursting their eardrums if they decide to put an absurd value in the JSON
-                Volume = Math.Min(effectiveVolume, 1.0f),
-                PadWithZeroes = false,
-            };
 
             using (reader) {
                 using var output = new DirectSoundOut(soundDevice);
 
                 try {
+                    using var channel = new WaveChannel32(reader) {
+                        // prevent the user from bursting their eardrums if they decide to put an absurd value in the JSON
+                        Volume = Math.Min(effectiveVolume, 1.0f),
+                        PadWithZeroes = false,
+                    };
                     output.Init(channel);
                     output.Play();
 
