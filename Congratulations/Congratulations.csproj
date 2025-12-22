@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+<Project Sdk="Dalamud.NET.Sdk/14.0.1">
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>1.4.1.1</Version>
+    <Version>1.4.2.0</Version>
     <Description>Get aurally rewarded when you get commended on duties.</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/jkchen2/ffxiv-congratulations-plugin</PackageProjectUrl>
@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
