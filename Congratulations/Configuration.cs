@@ -39,11 +39,14 @@ namespace Congratulations
 
             public string GetFilePath()
             {
-                return UseCustomSound
-                           ? CustomFilePath
-                           : Path.Combine(
-                               Path.GetDirectoryName(Service.PluginInterface.AssemblyLocation.DirectoryName + "\\"),
-                               @"Sounds\", defaultFileName);
+                if (UseCustomSound)
+                    return CustomFilePath ?? string.Empty;
+
+                var baseDir = Service.PluginInterface.AssemblyLocation.DirectoryName;
+                if (string.IsNullOrEmpty(baseDir))
+                    return string.Empty;
+
+                return Path.Combine(baseDir, "Sounds", defaultFileName);
             }
         }
 
