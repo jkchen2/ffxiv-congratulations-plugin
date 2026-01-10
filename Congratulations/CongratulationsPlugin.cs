@@ -2,11 +2,9 @@ using System;
 using Dalamud.Game.Command;
 using Dalamud.Plugin;
 using Congratulations.Windows;
-using Dalamud.Game;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using Lumina.Excel.Sheets;
 
 namespace Congratulations
 {
@@ -18,12 +16,12 @@ namespace Congratulations
         public Configuration Configuration { get; init; }
 
         public readonly WindowSystem WindowSystem = new("Congratulations");
+        private readonly ConfigWindow configWindow;
 
-        private short lastCommendationCount;
-        private int largestPartySize;
-        private int currentPartySize;
-        private int lastAreaPartySize = -1;
-        private ConfigWindow configWindow;
+        private int partySizeAtPop = 1;
+        private int partySizeAtClear = 1;
+        private short commendationCountAtClear;
+        private bool announceOnNextZoneChange;
 
         public CongratulationsPlugin(IDalamudPluginInterface pluginInterface)
         {
@@ -43,74 +41,83 @@ namespace Congratulations
             Service.PluginInterface.UiBuilder.Draw += DrawUserInterface;
             Service.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigWindow;
 
+            Service.ClientState.CfPop += OnCfPop;
+            Service.DutyState.DutyCompleted += OnDutyCompleted;
             Service.ClientState.TerritoryChanged += OnTerritoryChange;
-            Service.Framework.Update += OnUpdate;
-            Service.ClientState.Login += OnLogin;
-            Service.ClientState.Logout += OnLogout;
+        }
 
-            if (Service.ClientState.IsLoggedIn)
+        public void Dispose()
+        {
+            this.WindowSystem.RemoveAllWindows();
+            Service.CommandManager.RemoveHandler(CommandName);
+
+            Service.ClientState.CfPop -= OnCfPop;
+            Service.DutyState.DutyCompleted -= OnDutyCompleted;
+            Service.ClientState.TerritoryChanged -= OnTerritoryChange;
+        }
+
+        private void Reset()
+        {
+            partySizeAtPop = 1;
+            partySizeAtClear = 1;
+            commendationCountAtClear = 0;
+            announceOnNextZoneChange = false;
+        }
+
+        private void OnCfPop(ContentFinderCondition obj)
+        {
+            partySizeAtPop = GetCurrentPartySize();
+            Service.PluginLog.Debug($"Popped duty with party size: {partySizeAtPop}");
+        }
+
+        private void OnDutyCompleted(object? sender, ushort e)
+        {
+            partySizeAtClear = GetCurrentPartySize();
+            commendationCountAtClear = GetCurrentCommendationCount();
+            announceOnNextZoneChange = true;
+            Service.PluginLog.Debug($"Completed duty with party size {partySizeAtClear} (partySizeAtPop={partySizeAtPop} commendationCountAtClear={commendationCountAtClear})");
+        }
+
+        private void OnTerritoryChange(ushort obj)
+        {
+            if (!announceOnNextZoneChange) return;
+
+            var numberOfMatchMadePlayers = partySizeAtClear - partySizeAtPop;
+            var commendsObtained = GetCurrentCommendationCount() - commendationCountAtClear;
+            var normalizedCommends = (float)commendsObtained / numberOfMatchMadePlayers;
+
+            Service.PluginLog.Debug($"Gained {commendsObtained} commendations from {numberOfMatchMadePlayers} match-made players (normalized: {normalizedCommends})");
+
+            Reset();
+
+            if (commendsObtained >= 7)
             {
-                OnLogin();
+                PlaySoundConfig(Configuration.AllSevenInAFullParty);
+            }
+            else
+            {
+                switch (normalizedCommends)
+                {
+                    case > 2 / 3f:
+                        PlaySoundConfig(Configuration.ThreeThirds);
+                        break;
+                    case > 1 / 3f:
+                        PlaySoundConfig(Configuration.TwoThirds);
+                        break;
+                    case > 0:
+                        PlaySoundConfig(Configuration.OneThird);
+                        break;
+                }
             }
         }
 
-        private void OnLogin()
+        private static void PlaySoundConfig(Configuration.SubConfiguration config)
         {
-            this.lastCommendationCount = GetCurrentCommendationCount();
-            Service.PluginLog.Debug("Starting commendations: {0}", lastCommendationCount);
-
-            currentPartySize = GetCurrentPartySize();
-            lastAreaPartySize = currentPartySize;
-            largestPartySize = currentPartySize;
-            Service.PluginLog.Debug("Starting party size: {0}", largestPartySize);
-        }
-
-        private void OnLogout(int type, int code)
-        {
-            Service.PluginLog.Debug("Clearing commendations count (logging out)");
-            this.lastCommendationCount = 0;
-        }
-
-        //Called each frame or something?
-        private void OnUpdate(IFramework framework)
-        {
-            if (!Service.ClientState.IsLoggedIn) return;
-            currentPartySize = GetCurrentPartySize();
-            // If the current party size is bigger than it was last update, we update the largest party size
-            if (currentPartySize > largestPartySize)
+            if (config.PlaySound)
             {
-                Service.PluginLog.Debug("Party grew from {0} to {1}", largestPartySize, currentPartySize);
-                largestPartySize = currentPartySize;
+                Service.PluginLog.Debug($"Playing sound: {config.SectionTitle}");
+                SoundEngine.PlaySound(config.GetFilePath(), config.ApplySfxVolume, config.Volume * 0.01f);
             }
-        }
-
-        // Called whenever the WoL changes location (e.g. from the world to an instanced duty)
-        // BTW, the party is formed/dissolved *after* this is called, which explains the somewhat
-        // weird logic that happens here.
-        private void OnTerritoryChange(ushort @ushort)
-        {
-            if (!Service.ClientState.IsLoggedIn || lastAreaPartySize == -1) return;
-            Service.PluginLog.Debug("territory changed");
-            var currentCommendationCount = GetCurrentCommendationCount();
-
-            // If the WoL commendations went up when changing location
-            // (i.e. a duty has finished and the WoL left the instance)
-            if (lastCommendationCount > 0 && currentCommendationCount > lastCommendationCount)
-            {
-                Service.PluginLog.Debug("Commends changed from {0} to {1}", lastCommendationCount, currentCommendationCount);
-                // lastAreaPartySize = party size BEFORE joining the duty (that can't commend you).
-                // largestPartySize = party size INSIDE the duty (including those that can and can't commend you).
-                // the remainder is the number of matchmade players.
-                PlayCongratulations(largestPartySize - lastAreaPartySize,
-                                    currentCommendationCount - lastCommendationCount);
-            }
-
-            // In any case, update the cached values.
-            lastCommendationCount = currentCommendationCount;
-            lastAreaPartySize = currentPartySize;
-            currentPartySize = GetCurrentPartySize();
-            Service.PluginLog.Debug("Party size reset from {0} to {1}", largestPartySize, currentPartySize);
-            largestPartySize = currentPartySize;
         }
 
         private int GetCurrentPartySize()
@@ -123,52 +130,6 @@ namespace Congratulations
         private static unsafe short GetCurrentCommendationCount()
         {
             return PlayerState.Instance()->PlayerCommendations;
-        }
-        
-        private void PlayCongratulations(int numberOfMatchMadePlayers, int commendsObtained)
-        {
-            Service.PluginLog.Debug("Playing sound for {0} commends obtained of a maximum of {1}", commendsObtained,
-                              numberOfMatchMadePlayers);
-
-            void Func(Configuration.SubConfiguration config)
-            {
-                if (config.PlaySound)
-                {
-                    SoundEngine.PlaySound(config.GetFilePath(), config.ApplySfxVolume, config.Volume * 0.01f);
-                }
-            }
-
-            if (commendsObtained == 7)
-            {
-                Func(Configuration.AllSevenInAFullParty);
-            }
-            else
-            {
-                var normalizedCommends = commendsObtained / (numberOfMatchMadePlayers * 1.0f);
-                switch (normalizedCommends)
-                {
-                    case > 2 / 3f:
-                        Func(Configuration.ThreeThirds);
-                        break;
-                    case > 1 / 3f:
-                        Func(Configuration.TwoThirds);
-                        break;
-                    case > 0:
-                        Func(Configuration.OneThird);
-                        break;
-                }
-            }
-        }
-
-
-        public void Dispose()
-        {
-            this.WindowSystem.RemoveAllWindows();
-            Service.CommandManager.RemoveHandler(CommandName);
-            Service.ClientState.TerritoryChanged -= OnTerritoryChange;
-            Service.Framework.Update -= OnUpdate;
-            Service.ClientState.Login -= OnLogin;
-            Service.ClientState.Logout -= OnLogout;
         }
 
         private void OnConfigCommand(string command, string args)
