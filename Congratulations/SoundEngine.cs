@@ -1,10 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
-using Congratulations.Game;
 using Dalamud.Logging;
 using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using NAudio.Wave;
 using static Congratulations.Common.GameSettings;
 
