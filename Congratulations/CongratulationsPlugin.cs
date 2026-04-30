@@ -87,7 +87,7 @@ namespace Congratulations
         // Called whenever the WoL changes location (e.g. from the world to an instanced duty)
         // BTW, the party is formed/dissolved *after* this is called, which explains the somewhat
         // weird logic that happens here.
-        private void OnTerritoryChange(ushort @ushort)
+        private void OnTerritoryChange(uint territoryId)
         {
             if (!Service.ClientState.IsLoggedIn || lastAreaPartySize == -1) return;
             Service.PluginLog.Debug("territory changed");

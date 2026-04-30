@@ -78,7 +78,7 @@ public static unsafe class GameConfig {
             
             var e = configBase->ConfigEntry;
             for (var i = 0U; i < configBase->ConfigCount; i++, e++) {
-                if (e->Name == null) continue;
+                if (!e->Name.HasValue) continue;
                 var eName = MemoryHelper.ReadStringNullTerminated(new IntPtr(e->Name));
                 indexMap.TryAdd(eName, i);
             }
@@ -90,7 +90,7 @@ public static unsafe class GameConfig {
                 
                 var e = configBase->ConfigEntry;
                 e += i;
-                if (e->Name == null) return null;
+                if (!e->Name.HasValue) return null;
 
                 if (!nameMap.TryGetValue(i, out var name)) {
                     name = MemoryHelper.ReadStringNullTerminated(new IntPtr(e->Name));
@@ -108,7 +108,7 @@ public static unsafe class GameConfig {
                 if (!TryGetIndex(name, out var i)) return null;
                 var e = configBase->ConfigEntry;
                 e += i;
-                if (e->Name == null) return null;
+                if (!e->Name.HasValue) return null;
                 return new EntryWrapper(e, name);
             }
         }
@@ -118,7 +118,7 @@ public static unsafe class GameConfig {
             if (!TryGetIndex(name, out var i, nameComparison)) return false;
             var e = configBase->ConfigEntry;
             e += i;
-            if (e->Name == null) return false; 
+            if (!e->Name.HasValue) return false; 
             result = new EntryWrapper(e, name);
             return true;
         }
@@ -130,7 +130,7 @@ public static unsafe class GameConfig {
             if (hasName) return name != null;
             var e = configBase->ConfigEntry;
             e += index;
-            if (e->Name == null) return false;
+            if (!e->Name.HasValue) return false;
             name = MemoryHelper.ReadStringNullTerminated(new IntPtr(e->Name));
             indexMap.TryAdd(name, index);
             nameMap.TryAdd(index, name);
@@ -141,7 +141,7 @@ public static unsafe class GameConfig {
             if (indexMap.TryGetValue(name, out index)) return true;
             var e = configBase->ConfigEntry;
             for (var i = 0U; i < configBase->ConfigCount; i++, e++) {
-                if (e->Name == null) continue;
+                if (!e->Name.HasValue) continue;
                 var eName = MemoryHelper.ReadStringNullTerminated(new IntPtr(e->Name));
                 if (eName.Equals(name)) {
                     indexMap.TryAdd(name, i);
